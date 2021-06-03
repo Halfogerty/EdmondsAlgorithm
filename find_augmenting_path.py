@@ -2,13 +2,6 @@ from data_structures import *
 from copy import deepcopy
 
 
-# TODO build a proper Edge class
-def find_partner(edge: frozenset[str], query_node: str) -> str:
-    for node in edge:
-        if node != query_node:
-            return node
-
-
 def lift_path(augmenting_path: List[str], blossom: Blossom, forest: Forest, graph: Graph) -> List[str]:
     if blossom.get_label() not in augmenting_path:
         return augmenting_path
@@ -31,32 +24,17 @@ def lift_path(augmenting_path: List[str], blossom: Blossom, forest: Forest, grap
         return correctly_oriented_path[0: blossom_index] + path_to_add + correctly_oriented_path[blossom_index + 1:]
 
 
-# TODO decide whether to add a matching class
-def contract_matching(matching: Set[frozenset[str]], blossom: Set[str]) -> Set[frozenset[str]]:
-    contracted_matching = set()
-    blossom_node = create_blossom_label(blossom)
-    for edge in matching:
-        if edge.intersection(blossom) == set():
-            contracted_matching.add(edge)
-        else:
-            if not edge.issubset(blossom):
-                node_in_blossom = next(iter(edge.intersection(blossom)))
-                partner = find_partner(edge, node_in_blossom)
-                contracted_matching.add(frozenset({blossom_node, partner}))
-    return contracted_matching
-
-
-def find_augmenting_path(graph: Graph, matching: Set[frozenset[str]]) -> List[str]:
-    matching_dict = matching_to_dictionary(matching)
+def find_augmenting_path(graph: Graph, matching: Matching) -> List[str]:
+    matching_dict = matching.matching_to_dictionary()
     marked_nodes = set()
-    marked_edges = deepcopy(matching)
+    marked_edges = deepcopy(matching.edges)
     forest = Forest({Tree({node: set()}, node, {node: 0}) for node in graph.get_exposed_nodes(matching)})
 
     # This assignment expression will only work for Python version 3.8 or greater
     while (relevant_nodes := forest.get_relevant_nodes(marked_nodes)) != set(): # TODO is not vs !=?
         v = next(iter(relevant_nodes)) # TODO: yield?
         while (e := graph.get_unmarked_edge(v, marked_edges)) is not None:
-            w = find_partner(e, v)
+            w = e.find_partner(v)
             if w not in forest.get_nodes():
                 x = matching_dict[w]
                 forest.extend_tree(v, w)
@@ -72,17 +50,10 @@ def find_augmenting_path(graph: Graph, matching: Set[frozenset[str]]) -> List[st
                     else:
                         blossom = forest.node_to_tree_dict[v].find_blossom(v, w)
                         contracted_graph = graph.contract_blossom(blossom.get_nodes()) # TODO move get_nodes call into contract_blossom
-                        contracted_matching = contract_matching(matching, blossom.get_nodes()) # TODO Ditto for contract_matching
+                        contracted_matching = matching.contract_matching(blossom.get_nodes()) # TODO Ditto for contract_matching
                         contracted_path = find_augmenting_path(contracted_graph, contracted_matching)
                         return lift_path(contracted_path, blossom, forest, graph)
             marked_edges.add(e)
         marked_nodes.add(v)
     return []
-
-
-if __name__ == "__main__":
-    graph_dict = {'A': {'B', 'C'}, 'D': {}}
-    matching = {frozenset({'A', 'B'})}
-    graph = Graph(graph_dict)
-    print(graph.get_exposed_nodes(matching))
 

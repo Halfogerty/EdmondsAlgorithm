@@ -5,6 +5,70 @@ from util import *
 from dataclasses import dataclass
 
 
+class Edge:
+    def __init__(self, node_one: str, node_two: str, weight: float = 1):
+        if node_one == node_two:
+            raise ValueError("Unable to create edge between nodes with identical label equal to: {}".format(node_one))
+        self.nodes = frozenset({node_one, node_two})
+        self.weight = weight
+
+    def __key(self):
+        return self.nodes, self.weight
+
+    def __hash__(self):
+        return hash((self.__key()))
+
+    def __eq__(self, other):
+        if isinstance(other, Edge):
+            return self.__key() == other.__key()
+        return NotImplemented
+
+    def __str__(self):
+        return "({}, {})".format(self.nodes, self.weight)
+
+    def find_partner(self, query_node: str) -> str:
+        if query_node not in self.nodes:
+            raise ValueError("{} is not a node in edge")
+        for node in self.nodes:
+            if node != query_node:
+                return node
+
+
+class Matching:
+    def __init__(self, edges: Set[Edge]):
+        self.edges = edges
+
+    def __str__(self):
+        return ", ".join([str(edge) for edge in self.edges])
+
+    def get_nodes(self) -> Set[str]:
+        node_set = set()
+        for edge in self.edges:
+            node_set = node_set.union(edge.nodes)
+        return node_set
+
+    def matching_to_dictionary(self) -> Dict[str, str]:
+        matching_dict = {}
+        for edge in self.edges:
+            first_node, second_node = tuple(edge.nodes)
+            matching_dict[first_node] = second_node
+            matching_dict[second_node] = first_node
+        return matching_dict
+
+    def contract_matching(self, blossom: Set[str]) -> Matching:
+        contracted_edges = set()
+        blossom_node = create_blossom_label(blossom)
+        for edge in self.edges:
+            if edge.nodes.intersection(blossom) == set():
+                contracted_edges.add(edge)
+            else:
+                if not edge.nodes.issubset(blossom):
+                    node_in_blossom = next(iter(edge.nodes.intersection(blossom)))
+                    partner = edge.find_partner(node_in_blossom)
+                    contracted_edges.add(Edge(blossom_node, partner))
+        return Matching(contracted_edges)
+
+
 class Graph:
     def __init__(self, node_to_edges: Dict[str, Set[str]]):
         """Initialize the Graph from a dictionary"""
@@ -25,23 +89,23 @@ class Graph:
         return Graph(
             {str(i): {str(j) for j, _ in enumerate(matrix[i]) if matrix[i][j] != 0} for i, _ in enumerate(matrix)})
 
-    def get_edges(self) -> Set[frozenset[str]]:
+    def get_edges(self) -> Set[Edge]:
         edges = set()
         for node in self.node_to_edges:
             for partner in self.node_to_edges[node]:
-                edges.add(frozenset({node, partner}))
+                edges.add(Edge(node, partner))
         return edges
 
     def get_nodes(self) -> Set[str]:
         return set(self.node_to_edges.keys())
 
-    def get_exposed_nodes(self, matching: Set[frozenset[str]]) -> Set[str]:
-        unexposed_vertices = union_of_sets(matching)
+    def get_exposed_nodes(self, matching: Matching) -> Set[str]:
+        unexposed_vertices = matching.get_nodes()
         all_vertices = self.get_nodes()
         return all_vertices.difference(unexposed_vertices)
 
-    def get_unmarked_edge(self, node: str, marked_edges: set[frozenset[str]]) -> Optional[frozenset[str]]:
-        edges_connected_to_node = {frozenset({node, neighbouring_node}) for neighbouring_node in
+    def get_unmarked_edge(self, node: str, marked_edges: set[Edge]) -> Optional[Edge]:
+        edges_connected_to_node = {Edge(node, neighbouring_node) for neighbouring_node in
                                    self.node_to_edges[node]}
         unmarked_edges = edges_connected_to_node.difference(marked_edges)
         if unmarked_edges == set():
@@ -153,9 +217,6 @@ class Forest:
         """A vertex is 'relevant' if it is unmarked and is an even distance from the root of its tree"""
         unmarked_nodes = self.get_nodes().difference(marked_nodes)
         return set(filter(lambda node: self.node_to_tree_dict[node].is_distance_to_root_even(node), unmarked_nodes))
-
-    def get_unmarked_edge(self, node: str, marked_edges: Set[frozenset[str]]) -> Optional[frozenset[str]]:
-        return self.node_to_tree_dict[node].get_unmarked_edge(node, marked_edges)
 
     def extend_tree(self, parent: str, new_node: str) -> None:
         tree = self.node_to_tree_dict[parent]

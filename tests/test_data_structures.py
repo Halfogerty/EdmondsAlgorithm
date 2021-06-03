@@ -1,15 +1,35 @@
 from find_augmenting_path import *
 
 
+def test_edges():
+    assert Edge('A', 'B', 1) == Edge('B', 'A', 1)
+    assert not Edge('A', 'B') == Edge('A', 'C')
+
+    assert {Edge('A', 'B'), Edge('A', 'C')} == {Edge('C', 'A'), Edge('B', 'A')}
+
+    assert Edge('A', 'B').find_partner('A') == 'B'
+
+
+def test_matchings():
+    matching1 = Matching({Edge('A', 'B'), Edge('C', 'D')})
+    assert matching1.get_nodes() == {'A', 'B', 'C', 'D'}
+
+    assert matching1.matching_to_dictionary() == {'A': 'B', 'B': 'A', 'C': 'D', 'D': 'C'}
+
+    matching2 = Matching({Edge('A', 'B'), Edge('C', 'D'), Edge('E', 'F')})
+    blossom = {'D', 'E', 'F'}
+    assert matching2.contract_matching(blossom).edges == {Edge('A', 'B'), Edge('C', 'DEF')}
+
+
 def test_graphs():
     test_graph = Graph({'A': {'B', 'C'}, 'D': {'C'}})
-    test_matching = {frozenset({'A', 'C'})}
+    test_matching = Matching({Edge('A', 'C')})
 
     assert test_graph.node_to_edges == {'A': {'B', 'C'}, 'B': {'A'}, 'C': {'A', 'D'}, 'D': {'C'}}
-    assert test_graph.get_edges() == {frozenset({'A', 'B'}), frozenset({'A', 'C'}), frozenset({'C', 'D'})}
+    assert test_graph.get_edges() == {Edge('A', 'B'), Edge('A', 'C'), Edge('C', 'D')}
     assert test_graph.get_nodes() == {'A', 'B', 'C', 'D'}
     assert test_graph.get_exposed_nodes(test_matching) == {'B', 'D'}
-    assert test_graph.get_unmarked_edge('A', {frozenset({'A', 'C'})}) == frozenset({'A', 'B'})
+    assert test_graph.get_unmarked_edge('A', {Edge('A', 'C')}) == Edge('A', 'B')
 
     test_path_from_graph = Graph.from_path(['A', 'B', 'C'])
     assert test_path_from_graph.node_to_edges == {'A': {'B'}, 'B': {'A', 'C'}, 'C': {'B'}}
@@ -58,21 +78,16 @@ def test_forests():
     assert test_forest.get_relevant_nodes({'A', 'D'}) == {'F'}
 
 
-def test_matching():
-    matching = {frozenset({'A', 'B'}), frozenset({'C', 'D'}), frozenset({'E', 'F'})}
-    blossom = {'D', 'E', 'F'}
-    assert contract_matching(matching, blossom) == {frozenset({'A', 'B'}), frozenset({'C', 'DEF'})}
-
-
-def test_blossom():
+def test_blossoms():
     blossom = Blossom('H', ['G', 'F'], ['I', 'J'])
     assert blossom.get_branch('G') == (['G', 'F'], ['I', 'J'])
     assert blossom.get_branch('I') == (['I', 'J'], ['G', 'F'])
 
 
 if __name__ == "__main__":
-    # test_graphs()
+    test_edges()
+    test_matchings()
+    test_graphs()
     test_trees()
-    # test_forests()
-    # test_matching()
-    # test_blossom()
+    test_forests()
+    test_blossoms()

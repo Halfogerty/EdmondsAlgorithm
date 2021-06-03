@@ -1,12 +1,5 @@
-from util import matching_to_dictionary
-from data_structures import Graph
-from typing import Set
+from data_structures import Graph, Edge
 import random
-
-
-def test_matching_to_dictionary():
-    test_matching = {frozenset({'A', 'B'}), frozenset({'C', 'D'})}
-    assert matching_to_dictionary(test_matching) == {'A': 'B', 'B': 'A', 'C': 'D', 'D': 'C'}
 
 
 def create_random_graph(graph_size: int, edge_probability: float) -> Graph:
