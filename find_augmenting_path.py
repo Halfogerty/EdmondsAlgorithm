@@ -18,9 +18,9 @@ def lift_path(augmenting_path: List[str], blossom: Blossom, forest: Forest, grap
             if partner_node_in_blossom == blossom.stem:
                 path_to_add = [blossom.stem]
             else:
-                path_to_add = blossom.get_direct_path(partner_node_in_blossom)
+                path_to_add = blossom.get_direct_path_from_stem(partner_node_in_blossom)
         else:
-            path_to_add = blossom.get_indirect_path(partner_node_in_blossom)
+            path_to_add = blossom.get_indirect_path_from_stem(partner_node_in_blossom)
         return correctly_oriented_path[0: blossom_index] + path_to_add + correctly_oriented_path[blossom_index + 1:]
 
 
@@ -30,9 +30,8 @@ def find_augmenting_path(graph: Graph, matching: Matching) -> List[str]:
     marked_edges = deepcopy(matching.edges)
     forest = Forest({Tree({node: set()}, node, {node: 0}) for node in graph.get_exposed_nodes(matching)})
 
-    # This assignment expression will only work for Python version 3.8 or greater
-    while (relevant_nodes := forest.get_relevant_nodes(marked_nodes)) != set(): # TODO is not vs !=?
-        v = next(iter(relevant_nodes)) # TODO: yield?
+    while (relevant_nodes := forest.get_relevant_nodes(marked_nodes)) != set():
+        v = next(iter(relevant_nodes))
         while (e := graph.get_unmarked_edge(v, marked_edges)) is not None:
             w = e.find_partner(v)
             if w not in forest.get_nodes():
@@ -49,11 +48,10 @@ def find_augmenting_path(graph: Graph, matching: Matching) -> List[str]:
                         return v_path[::-1] + w_path
                     else:
                         blossom = forest.node_to_tree_dict[v].find_blossom(v, w)
-                        contracted_graph = graph.contract_blossom(blossom.get_nodes()) # TODO move get_nodes call into contract_blossom
-                        contracted_matching = matching.contract_matching(blossom.get_nodes()) # TODO Ditto for contract_matching
+                        contracted_graph = graph.contract_blossom(blossom)
+                        contracted_matching = matching.contract_matching(blossom)
                         contracted_path = find_augmenting_path(contracted_graph, contracted_matching)
                         return lift_path(contracted_path, blossom, forest, graph)
             marked_edges.add(e)
         marked_nodes.add(v)
     return []
-

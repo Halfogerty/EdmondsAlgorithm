@@ -4,21 +4,20 @@ from find_augmenting_path import *
 def test_edges():
     assert Edge('A', 'B', 1) == Edge('B', 'A', 1)
     assert not Edge('A', 'B') == Edge('A', 'C')
-
     assert {Edge('A', 'B'), Edge('A', 'C')} == {Edge('C', 'A'), Edge('B', 'A')}
-
     assert Edge('A', 'B').find_partner('A') == 'B'
 
 
 def test_matchings():
     matching1 = Matching({Edge('A', 'B'), Edge('C', 'D')})
     assert matching1.get_nodes() == {'A', 'B', 'C', 'D'}
-
     assert matching1.matching_to_dictionary() == {'A': 'B', 'B': 'A', 'C': 'D', 'D': 'C'}
-
     matching2 = Matching({Edge('A', 'B'), Edge('C', 'D'), Edge('E', 'F')})
-    blossom = {'D', 'E', 'F'}
-    assert matching2.contract_matching(blossom).edges == {Edge('A', 'B'), Edge('C', 'DEF')}
+    blossom = Blossom('D', ['D', 'E', 'F'], [])
+    assert matching2.contract_matching(blossom).edges == {Edge('A', 'B'), Edge('C', str(hash('DEF')))}
+
+    int_matching = Matching({Edge('0', '1')})
+    assert int_matching.to_matrix(2) == [[0, 1], [1, 0]]
 
 
 def test_graphs():
@@ -35,12 +34,16 @@ def test_graphs():
     assert test_path_from_graph.node_to_edges == {'A': {'B'}, 'B': {'A', 'C'}, 'C': {'B'}}
 
     graph_with_blossom = Graph({'A': {'B'}, 'B': {'C', 'D'}, 'C': {'E'}, 'D': {'F'}, 'E': {'D'}})
-    blossom = {'B', 'C', 'D', 'E'}
-    assert graph_with_blossom.contract_blossom(blossom).node_to_edges == {'A': {'BCDE'}, 'BCDE': {'A', 'F'},
-                                                                          'F': {'BCDE'}}
+    blossom = Blossom('B', ['C', 'D'], ['E'])
+    blossom_hash = str(hash('BCDE'))
+    assert graph_with_blossom.contract_blossom(blossom).node_to_edges == {'A': {blossom_hash}, blossom_hash: {'A', 'F'},
+                                                                          'F': {blossom_hash}}
 
     test_graph_from_matrix = Graph.from_matrix([[0, 1, 1], [1, 0, 0], [1, 0, 0]])
     assert test_graph_from_matrix.node_to_edges == {'0': {'2', '1'}, '1': {'0'}, '2': {'0'}}
+
+    graph_to_be_deleted = Graph({'A': {'B'}, 'B': {'C'}, 'C': {'B'}})
+    assert graph_to_be_deleted.delete_edge(Edge('B', 'C')).node_to_edges == {'A': set()}
 
 
 def test_trees():
@@ -50,15 +53,15 @@ def test_trees():
     assert not test_tree.is_distance_to_root_even('B')
     assert test_tree.path_to_root('C') == ['C', 'B', 'A']
 
-    small_blossom_tree = Tree({'A': {'B'}, 'B': {'C'}}, 'A', {'A': 0, 'B': 1, 'C': 2})
-    small_blossom = small_blossom_tree.find_blossom('A', 'C')
+    small_blossom_tree = Tree({'A': {'B'}, 'B': {'C'}, 'C': {'D'}, 'D': {'E'}}, 'A', {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4})
+    small_blossom = small_blossom_tree.find_blossom('C', 'E')
 
-    assert small_blossom.stem == 'A'
-    assert small_blossom.left_branch == []
-    assert small_blossom.right_branch == ['B', 'C']
+    assert small_blossom.stem == 'C'
+    assert small_blossom.left_branch == ['D', 'E']
+    assert small_blossom.right_branch == []
 
     large_blossom_tree = Tree({'A': {'B'}, 'B': {'C', 'D'}, 'C': {'E'}, 'D': {'F'}}, 'A',
-                        {'A': 0, 'B': 1, 'C': 2, 'D': 2, 'E': 3, 'F': 3}) # TODO make this test more readable using paths?
+                        {'A': 0, 'B': 1, 'C': 2, 'D': 2, 'E': 3, 'F': 3})
     large_blossom = large_blossom_tree.find_blossom('E', 'D')
     assert large_blossom.stem == 'B'
     assert large_blossom.left_branch == ['C', 'E']
