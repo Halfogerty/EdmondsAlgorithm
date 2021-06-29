@@ -138,6 +138,17 @@ class Graph:
         return Graph(
             {str(i): {str(j) for j, _ in enumerate(matrix[i]) if matrix[i][j] != 0} for i, _ in enumerate(matrix)})
 
+    @classmethod
+    def from_edges(cls, edges: Set[Edge]):
+        node_to_edges_dict = {}
+        for edge in edges:
+            for node in edge.nodes:
+                if node in node_to_edges_dict:
+                    node_to_edges_dict[node].add(edge.find_partner(node))
+                else:
+                    node_to_edges_dict[node] = {edge.find_partner(node)}
+        return Graph(node_to_edges_dict)
+
     def get_edges(self) -> Set[Edge]:
         edges = set()
         for node in self.node_to_edges:

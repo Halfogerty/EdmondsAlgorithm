@@ -1,5 +1,6 @@
 from find_maximum_matching import *
 from test_util import *
+from timeit import default_timer as timer
 
 
 def test_augment_matching_with_path():
@@ -41,15 +42,9 @@ def test_against_brute_force():
             print("ValueError encountered!  The graph was: {}".format(graph.node_to_edges))
 
 
-def test_scaling():
-    """Make sure Edmonds' algorithm runs in a reasonable time on a graph of 100 nodes"""
-    graph = create_random_graph(100, 0.2)
-    find_maximum_matching(graph)
-
-
 if __name__ == "__main__":
     test_augment_matching_with_path()
     test_find_maximum_basic_example()
     test_find_maximum_more_complex_example()
     test_against_brute_force()
-    test_scaling()
+

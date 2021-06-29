@@ -33,6 +33,9 @@ def test_graphs():
     test_path_from_graph = Graph.from_path(['A', 'B', 'C'])
     assert test_path_from_graph.node_to_edges == {'A': {'B'}, 'B': {'A', 'C'}, 'C': {'B'}}
 
+    test_graph_from_edges = Graph.from_edges({Edge('A', 'B'), Edge('B', 'C')})
+    assert test_graph_from_edges.node_to_edges == {'B': {'A', 'C'}, 'A': {'B'}, 'C': {'B'}}
+
     graph_with_blossom = Graph({'A': {'B'}, 'B': {'C', 'D'}, 'C': {'E'}, 'D': {'F'}, 'E': {'D'}})
     blossom = Blossom('B', ['C', 'D'], ['E'])
     blossom_hash = str(hash('BCDE'))
